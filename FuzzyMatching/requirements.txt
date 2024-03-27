@@ -1,0 +1,6 @@
+thefuzz
+xlrd
+pandas
+openpyxl
+Pyarrow
+warnings
