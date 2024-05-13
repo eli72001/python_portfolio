@@ -1,0 +1,4 @@
+**/__pycache__/
+**front/db/
+front/.env
+.vscode
