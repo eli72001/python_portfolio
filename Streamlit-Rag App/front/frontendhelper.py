@@ -1,9 +1,12 @@
 import base64
 import streamlit as st
 import os
-from OutputParser import OutputParser
 from PdfAnnotator import PdfAnnotator
 from create_collection import create_collection
+from streamlit.components.v1 import html
+from PIL import Image
+import pandas as pd
+
 
 def clean_path(path):
     first_split = path.split('\\')
@@ -27,6 +30,7 @@ def get_filename(file_path):
 
 def annotate_pdf():
     session_id = st.session_state.sessionId
+    question = st.session_state.question
     response = st.session_state.response
     parser = st.session_state.parser
     try:
@@ -36,7 +40,7 @@ def annotate_pdf():
             else:
                 annotator = PdfAnnotator(parser.get_file())
                 st.session_state.annotators[parser.get_file()] = annotator
-            annotator.highlight(parser, response)
+            annotator.highlight(parser, question, response)
             path = os.path.join('annotated_docs', session_id)
             if os.path.isdir(path) is False:
                 os.makedirs(path)
@@ -75,3 +79,73 @@ def check_env_variables():
             raise ValueError("COHERE_API_KEY environment variable is not set")
     except KeyError:
         raise ValueError("COHERE_API_KEY environment variable is not set")
+    
+
+@st.cache_resource  # clear cache is available on ui upper right corner
+def get_messages():
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+        # st.markdown('*Upload a file into sidebar and type a question into the text box below to get started.*')
+        with st.chat_message("assistant", avatar = r'ui_assets\kb4.png'):
+            st.markdown('To get started, upload a stock ticker or PDF document into the lefthand sidebar. Then, submit a question in the text box below to prompt KLOE’s search.  ')
+    return st.session_state.messages
+
+def nav_page(page_name, timeout_secs=3):
+    nav_script = """
+        <script type="text/javascript">
+            function attempt_nav_page(page_name, start_time, timeout_secs) {
+                var links = window.parent.document.getElementsByTagName("a");
+                for (var i = 0; i < links.length; i++) {
+                    if (links[i].href.toLowerCase().endsWith("/" + page_name.toLowerCase())) {
+                        links[i].click();
+                        return;
+                    }
+                }
+                var elasped = new Date() - start_time;
+                if (elasped < timeout_secs * 1000) {
+                    setTimeout(attempt_nav_page, 100, page_name, start_time, timeout_secs);
+                } else {
+                    alert("Unable to navigate to page '" + page_name + "' after " + timeout_secs + " second(s).");
+                }
+            }
+            window.addEventListener("load", function() {
+                attempt_nav_page("%s", new Date(), %d);
+            });
+        </script>
+    """ % (page_name, timeout_secs)
+    html(nav_script)
+
+def set_bg_hack(main_bg):
+    '''
+    A function to unpack an image from root folder and set as bg.
+ 
+    Returns
+    -------
+    The background.
+    '''
+    # set bg name
+    main_bg_ext = "png"
+        
+    st.markdown(
+         f"""
+         <style>
+         .stApp {{
+             background: url(data:image/{main_bg_ext};base64,{base64.b64encode(open(main_bg, "rb").read()).decode()});
+             background-size: cover
+         }}
+         </style>
+         """,
+         unsafe_allow_html=True
+     )
+
+def filter_tickers(substring, tickers):
+    updated = []
+    for ticker in tickers:
+        if ticker.startswith(substring.upper()):
+            updated.append(ticker)
+    return updated
+
+
+def search_nasdaq(searchterm):
+    tickers = list(pd.read_csv('nasdaqlisted.txt', sep='|')['Symbol'].astype(str))[0:-1]
+    return filter_tickers(searchterm, tickers)

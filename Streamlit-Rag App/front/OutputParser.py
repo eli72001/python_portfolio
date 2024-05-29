@@ -66,12 +66,17 @@ class OutputParser:
         Returns:
             str: cleaned llm output
         """
-        start = string.find('-')
+        start = string.find('*')
         if start == -1:
-            return string
+            start = string[0:3].find('-')
+        
+        #if start == -1:
+        #    return string
         end = string.find('--', start+1)
         if end == -1:
             return string
+        if start < 0:
+            return string[:end-1]
         return string[start+2:end-1]
     
     def get_values(self):

@@ -1,5 +1,5 @@
 from langchain.document_loaders import PyPDFLoader
-from langchain_text_splitters import SpacyTextSplitter
+from langchain_text_splitters import SpacyTextSplitter, RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 import os
 
@@ -142,7 +142,7 @@ class CustomDocument:
             list: list of Langchain documents that have been chunked
         """
         final_chunks = []
-        text_splitter = SpacyTextSplitter(chunk_size=size)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=size)
         for doc in self.combined_data:
             chunks = text_splitter.split_text(doc.page_content)
             for txt in chunks:

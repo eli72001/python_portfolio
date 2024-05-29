@@ -2,7 +2,7 @@ import os
 import re
 import json
 import chromadb
-from langchain_text_splitters import SpacyTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader
 from langchain.docstore.document import Document
 import chromadb.utils.embedding_functions as embedding_functions
@@ -60,7 +60,7 @@ def combine_chunks(docs, company, file_path, file_type, cik, n):
 
 def chunk_combined_docs(combined_chunks, size):
     final_chunks = []
-    text_splitter = SpacyTextSplitter(chunk_size=size)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=size)
     for doc in combined_chunks:
         chunks = text_splitter.split_text(doc.page_content)
         for txt in chunks:
@@ -137,6 +137,7 @@ def add_json_to_collection(collection, json, file_path):
         metadatas=[{"file path": file_path, "source": "OpenCorporates", "file_type": "json"}],
         ids=ids
     )
+
 
 def create_collection(name):
     db_path = "db"

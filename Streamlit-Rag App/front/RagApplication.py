@@ -8,9 +8,6 @@ from langchain_openai import OpenAIEmbeddings
 import os
 from CustomDocument import CustomDocument
 import chromadb.utils.embedding_functions as embedding_functions
-#import tiktoken
-COHERE_API_KEY = "XO6vn8j4q8fhFwd0ZaCJZGyee939l3YE4ACu4Tz6"     # shari trial key
-os.environ["COHERE_API_KEY"] = COHERE_API_KEY
 
 class RagApplication:
     def __init__(self):
@@ -20,16 +17,30 @@ class RagApplication:
                         Just answer the question, do not provide any introduction text.
                         Also provide the metadata of the document where you find the answer.
                         The File Path of the document should include .pdf if it exists in the metadata.
+
+                        IMPORTANT NOTE: If the question contains a company name NOT exactly as an extracted file name "[company name] 10k" from the metadata, the output should incur an ERROR.
+                        Example error:
+                            [company name] documents not found.
+ 
+                        Each question should contain a company name found within the file name and metadata. Return error if question contains a company name NOT EXACTLY the same as file name from the metadata.
  
                         1. If the question asks for the nature of the business of a company, the output should be a SINGLE summary sentence.
+                        The summary should provide an informative sentence of the company. This can include products and/or services. MAKE IT SPECIFIC AND INFORMATIVE!
                         Do NOT use bulletpoints for this question.
                         Please be succinct and LIMIT to 12 words.
+ 
                         Example output:
                             [company name] is [a single sentence summarising the nature of business]
  
                             Document: [document here].pdf | Page Number: [page number here]
  
-                        Make each simple summary up to ONE SENTENCE and 12 WORDS.
+                        Note: Use this for AMAZON:
+                           
+                            Amazon is a global e-commerce and technology company.
+ 
+                            Document: [document here].pdf | Page Number: [page numbers here]
+ 
+                        Make each simple summary up to ONE SENTENCE and 12 WORDS. Make the simple summary informative and SPECIFIC like the provided example.
                        
                         2. If the question asks for an address or registered address, ONLY look for it in the OpenCorporates json.
                         Use the registered address from OpenCorporates json.
@@ -91,7 +102,7 @@ class RagApplication:
 
     def compressed_vector_search(self, question):
         llm = Cohere(temperature=0) # Do we need this ilne
-        compressor = CohereRerank(top_n=5)
+        compressor = CohereRerank(top_n=6)
         compression_retriever = ContextualCompressionRetriever(
             base_compressor=compressor,
             base_retriever=self.retriever,
@@ -105,12 +116,12 @@ class RagApplication:
         client = OpenAI()
  
         completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": self.prompt},
-            {"role": "system", "content": f"confine your search within the following knowledge base: {docs}"},
+            {"role": "system", "content": f"confine your search within the following knowledge base and only use file names found in the metadata of {docs}"},
             {"role": "user", "content": question},
-            {"role": "system", "content": "**IMPORTANT**: If ask`ed for legal representatives, INCLUDE ALL LISTED DIRECTOR on signature page. RETURN ALL NAMES!!"}
+            {"role": "system", "content": "**IMPORTANT**: If asked for legal representatives, INCLUDE ALL LISTED DIRECTOR on signature page. RETURN ALL NAMES!!"}
         ]
         )
         return completion.choices[0].message.content 
@@ -137,20 +148,14 @@ class RagApplication:
                     Your task is to search within the provided context and return an exact match from the text based on the generated answer.
                     Provide the page number and file name at the end of the output.
 
-                    If the question asks for the nature of the business of a company, the output should be a SINGLE sentence.
+                    If the question asks for the nature of the business of a company, the output should be an EXACT MATCH from the context provided.
                     Do NOT use bulletpoints for this question.
-                    Please be succinct and LIMIT to 12 words.
+                    Only use exact quotes from the text.
                     Example output:
                         [exact match of text from context]
 
-                        Document: [document here] | Page Number: [page number here]
+                        Document: [document here].pdf | Page Number: [page number here]
                     
-                    If the question is asking for ID number, the output should be in the format:
-                        [company name]'s [ID name]:
-                        [ID number]
-                        ...
-
-                        Document: [document here] | Page Number: [page number here]
                     
                     If the question asks for address, ONLY look for it in the OpenCorporates json. This file type is found in the metadata.
                     Use the registered address from OpenCorporates json. Do NOT use bulletpoints for this question.
@@ -168,7 +173,7 @@ class RagApplication:
 
                         Source: [source in metadata]
 
-                    If the question asks for legal representatives, look for them in the signature page (usually last few pages) of the document and report all of them.
+                    If the question asks for legal representatives, look for them in the signature pages (usually last few pages) of the document and report all of them.
                     Note that legal representatives include ALL LISTED principal officers, directors, and attornies even if they did not sign the document.
                     The output should be a bullet list of identified names and their position, separate the name from the position with two dash marks '--'.
                     
@@ -178,7 +183,7 @@ class RagApplication:
                         * James Murdoch -- Director
                         ...
 
-                        Document: [document here] | Page Number: [page number here]"""
+                        Document: [document here].pdf | Page Number: [page number here]"""
 
         question = question.lower()
         docs = self.compressed_vector_search(question)
@@ -186,7 +191,7 @@ class RagApplication:
         client = OpenAI()
 
         completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": prompt},
             {"role": "system", "content": f"provide document source and associated page_nums for EACH document found in {output}"},
@@ -221,7 +226,7 @@ class RagApplication:
     def add_document(self, file_path):
         file_name = os.path.basename(file_path)
         if file_name in self.vectorstore_files:
-            return "File has already been uploaded to vector database"
+            return f"{file_name} has already been uploaded to vector database"
         else:
             doc = CustomDocument(file_path)
             final_chunks = doc.process_document()
@@ -244,3 +249,15 @@ class RagApplication:
         if file_name in self.vectorstore_files:
             return False
         return True
+    
+    def add_json_to_collection(self, json, file_path):
+        json_chunk = [str(json)]
+        cur_count = self.collection.count()
+        ids = ['id' + str(cur_count + 1)]
+
+        # Add to collection
+        self.collection.add(
+            documents=json_chunk,
+            metadatas=[{"file path": file_path, "source": "OpenCorporates", "file_type": "json"}],
+            ids=ids
+        )

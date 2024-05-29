@@ -38,7 +38,7 @@ class PdfAnnotator:
         highlight_annot.set_colors({"stroke": fitz.utils.getColor("yellow")})
         highlight_annot.set_opacity(0.7)
 
-    def get_highlighted_quad(self, page_num, text, response, combine_quads=False):
+    def get_highlighted_quad(self, page_num, text, question, response, combine_quads=False):
         """Highlights text on a given page of our document
 
         Args:
@@ -54,19 +54,22 @@ class PdfAnnotator:
         p = self.file[page_num]
         point = fitz.Point(25,25)
         r1 = p.search_for(text, quads=True)
-
+        annotation = "Q: " + question + "\n" + "A: " + response
+        if response.count(":") > 2:
+            annotation = response.split(":",1)[0] + ":"
+            # annotation = question # + "\n" + response
         if combine_quads:
             r2 = PdfAnnotator._combine_quads(r1)
             PdfAnnotator._highlight_quad(p, r2)
             if r2:
-                p.add_text_annot(point, response)
+                p.add_text_annot(point, annotation)
 
             return r2
         else:
             for quad in r1:
                 PdfAnnotator._highlight_quad(p, quad)
                 if r1:
-                    p.add_text_annot(point, response)
+                    p.add_text_annot(point, annotation)
             return r1
 
 
@@ -120,7 +123,7 @@ class PdfAnnotator:
         self.file_path = filepath
         return self.file.save(filepath)
 
-    def highlight(self, parser, response):
+    def highlight(self, parser, question, response):
         pages = parser.get_pages()
         minimum = pages[0]
         maximum = pages[-1]
@@ -137,7 +140,7 @@ class PdfAnnotator:
                             end = min(i+4, n)
                             window = words[start:end]
                             search_word = " ".join(window)
-                            self.get_highlighted_quad(page, search_word, response, combine_quads=False)
+                            self.get_highlighted_quad(page, search_word, question, response, combine_quads=False)
                     else:
-                        self.get_highlighted_quad(page, value, response, combine_quads=False)
+                        self.get_highlighted_quad(page, value, question, response, combine_quads=False)
 
