@@ -2,8 +2,8 @@ from langchain_cohere.llms import Cohere
 from langchain_cohere import CohereRerank
 from langchain.retrievers import ContextualCompressionRetriever
 from openai import OpenAI
-import chromadb
 import os
+import chromadb
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 import chromadb.utils.embedding_functions as embedding_functions
@@ -28,7 +28,7 @@ class StateOfIncorporation:
         # for pair in self.vectorstore.get()['metadatas']:
         #     self.vectorstore_files.add(pair['file path'])
         openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-                api_key= os.environ['OPENAI_API_KEY']
+                api_key=os.environ['OPENAI_API_KEY']
             )
         self.collection = self.client.get_collection(name='docs_collection', embedding_function=openai_ef)
 

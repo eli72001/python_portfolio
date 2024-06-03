@@ -160,7 +160,7 @@ class CustomDocument:
         # IF PDF:
         self.load_pdf()
         self.combine_chunks()
-        self.chunk_combined_docs(2000)
+        self.chunk_combined_docs(3500)
         return self.combined_data
         # IF JSON:
 

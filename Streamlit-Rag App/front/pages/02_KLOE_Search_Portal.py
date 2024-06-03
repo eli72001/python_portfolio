@@ -189,6 +189,7 @@ if question := st.chat_input():
             st.session_state.messages.append({"role": "assistant", "content": response}) #### Version 2 --- change 'response' to 'f'ull_response' and unmark lines for version 1
             try:
                 refined_response = st.session_state.rag_app.refine_output(response, question)
+                print(refined_response)
                 parser = OutputParser(refined_response)
                 st.session_state.parser = parser
                 st.session_state.question = question

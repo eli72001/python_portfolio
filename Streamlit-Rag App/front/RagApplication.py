@@ -34,12 +34,6 @@ class RagApplication:
  
                             Document: [document here].pdf | Page Number: [page number here]
  
-                        Note: Use this for AMAZON:
-                           
-                            Amazon is a global e-commerce and technology company.
- 
-                            Document: [document here].pdf | Page Number: [page numbers here]
- 
                         Make each simple summary up to ONE SENTENCE and 12 WORDS. Make the simple summary informative and SPECIFIC like the provided example.
                        
                         2. If the question asks for an address or registered address, ONLY look for it in the OpenCorporates json.
@@ -142,39 +136,24 @@ class RagApplication:
 
     
     def refine_output(self, output, question):
-        prompt = """You are an intelligent assistant designed to extract information 
-                    and answer questions about a company given the documents related to it.
-                    You will be given pages from a document as context, and a generated answer for a specific question.
-                    Your task is to search within the provided context and return an exact match from the text based on the generated answer.
+        prompt = """You are an intelligent assistant designed to extract information and answer questions about a company given the documents related to it.
+                    You will be given pages from a document as context, and a summarized answer for a specific question.
+                    Your task is to search within the provided context and return an exact match from the text based on the provided summarized answer and context.
                     Provide the page number and file name at the end of the output.
 
-                    If the question asks for the nature of the business of a company, the output should be an EXACT MATCH from the context provided.
+                    If the question asks for the nature of the business or business summary, the output should be an EXACT MATCH from the context provided.
                     Do NOT use bulletpoints for this question.
-                    Only use exact quotes from the text.
+                    DO NOT summarize. Use exact sentences from the text
+                    IF YOU CANNOT FIND EXACT TEXT, return the most important sentence regarding the nature of business in the provided context
                     Example output:
                         [exact match of text from context]
 
                         Document: [document here].pdf | Page Number: [page number here]
                     
-                    
-                    If the question asks for address, ONLY look for it in the OpenCorporates json. This file type is found in the metadata.
-                    Use the registered address from OpenCorporates json. Do NOT use bulletpoints for this question.
-
-                    Next, in the OpenCorporates json file, if "has_registered_address" = false, report the address as AGENT address.
-                    If "has_registered_address" = true, do nothing.
-                    
-
-                    Example output:
-                        
-                        [address]\n
-
-                        This is the company's [agent] address.
-                        ...
-
-                        Source: [source in metadata]
 
                     If the question asks for legal representatives, look for them in the signature pages (usually last few pages) of the document and report all of them.
                     Note that legal representatives include ALL LISTED principal officers, directors, and attornies even if they did not sign the document.
+                    DO NOT provide any other text other than the Names of the representatives
                     The output should be a bullet list of identified names and their position, separate the name from the position with two dash marks '--'.
                     
                     Example output:

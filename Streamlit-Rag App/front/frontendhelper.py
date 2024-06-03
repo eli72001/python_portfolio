@@ -147,5 +147,9 @@ def filter_tickers(substring, tickers):
 
 
 def search_nasdaq(searchterm):
-    tickers = list(pd.read_csv('nasdaqlisted.txt', sep='|')['Symbol'].astype(str))[0:-1]
+    tickers = []
+    with open('all_tickers.txt', 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            tickers.append(line.strip())
     return filter_tickers(searchterm, tickers)

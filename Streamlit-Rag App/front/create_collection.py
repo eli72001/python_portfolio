@@ -170,7 +170,7 @@ def create_collection(name):
         # Preprocess file: cleaning, chunking, combining chunks
         #clean_chunks = clean_pages(pdf_chunks)
         combined_chunks = combine_chunks(pdf_chunks, company, file, file_type, cik, 1)
-        final_chunks = chunk_combined_docs(combined_chunks, 2000)
+        final_chunks = chunk_combined_docs(combined_chunks, 3500)
 
         # Add final chunks with metadatas to chromadb collection
         add_doc_to_collection(collection, final_chunks)
